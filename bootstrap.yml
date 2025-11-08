@@ -1,0 +1,38 @@
+---
+- name: "update/upgrade packages"
+  become: true
+  hosts: all
+  tasks:
+  #заменяем строчки в конфигах
+  - name: "update mirror to target vault.centos.org"
+    ansible.builtin.replace:
+      path: /etc/yum.repos.d/CentOS-Base.repo
+      regexp: 'mirror.centos.org'
+      replace: 'vault.centos.org'
+    when: ansible_facts['distribution'] == "CentOS"
+  #раскоментировали baseurl 
+  - name: "Uncomment baseurl lines"
+    ansible.builtin.replace:
+      path: /etc/yum.repos.d/CentOS-Base.repo
+      regexp: '^#\s*(baseurl=http.*)$' # Ищем закомментированные строки с baseurl
+      replace: '\1' #раскоментировал
+    when: ansible_facts['distribution'] == "CentOS"
+  #закоментили mirror 
+  - name: "Comment mirror"
+    ansible.builtin.replace:
+      path: /etc/yum.repos.d/CentOS-Base.repo
+      regexp: '^(mirrorlist=http.*)$' # Ищем строки с mirrorlist
+      replace: '#\1' #коментируем
+    when: ansible_facts['distribution'] == "CentOS"
+  #обновляем_пакеты на CentOS
+  - name: "update packages on CentOS"
+    yum:
+      name: "*"
+      state: latest
+    when: ansible_facts['distribution'] == "CentOS"
+  #обновляем пакеты на Debian
+  - name: "update packeges on Debian"
+    ansible.builtin.apt:
+      name: "*"
+      state: latest
+    when: ansible_os_family == "Debian"
